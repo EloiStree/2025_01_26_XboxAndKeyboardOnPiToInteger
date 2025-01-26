@@ -3,7 +3,13 @@ from evdev import InputDevice
 
 
 
+import os
+import sys
 
+# Function to restart the current Python script
+def restart_program():
+    print("Restarting the program...")
+    os.execv(sys.executable, ['python'] + sys.argv)
 
 
 from evdev import InputDevice, categorize, ecodes
@@ -220,6 +226,9 @@ for device_path in device_path_not_ban_or_registered:
                         print(f"Button {key_event.event.code} released")
                         # Handle button release
                         push_index_integer(gamepad.random_id, 2300)
+                        
+                    if key_event.event.code == 314:
+                        restart_program()
 
                 elif event.type == ecodes.EV_SW:  # Switch event (D-pad)
                     switch_event = categorize(event)
