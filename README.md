@@ -3,4 +3,4 @@ This code allows to turn controllers and keyboards to input to play at a game wi
 What I call a integer massive multiplayer game: iMMO
 
 
-Tested in game jam ^^.
+Tested at the global game jam 2025 😊.
