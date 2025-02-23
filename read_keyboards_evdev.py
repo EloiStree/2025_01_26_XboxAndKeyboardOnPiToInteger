@@ -125,13 +125,19 @@ if __name__ == "__main__":
         gamepads.clear()
         # List all input devices
         devices = [InputDevice(path) for path in list_devices()]
+        print("Devices:")
+        for d in devices:
+            print(d)
 
         # Filter only keyboard devices
         keyboards = [device for device in devices if 'keyboard' in device.name.lower()]
+        print("Keyboard:")
+        for k in keyboards:
+            print(k)
         
         print("Listening to the following keyboards:")
         for keyboard in keyboards:
-            print(f"{keyboard.path}: {keyboard.name}")
+            print(f">> {keyboard.path}: {keyboard.name}")
 
         # Open devices for reading
         devices = [InputDevice(keyboard.path) for keyboard in keyboards]
