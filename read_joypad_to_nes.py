@@ -137,7 +137,7 @@ class GamepadValue:
         self.path= path
         self.input_device = InputDevice(device_path)
         self.mapping = mapping
-        self.random_id=random.randint(-2000000000, 0)
+        self.player_index =random.randint(-2000000000, 0)
 
         self.up_arrow_pressed_previous = False
         self.up_arrow_pressed = False
@@ -151,7 +151,14 @@ class GamepadValue:
         self.horizontal = 0.0
         self.vertical = 0.0
 
+
+    def set_found_index(self, index):
+        self.player_index = index
+
         
+
+start_gamepad_index = 16
+bool_use_random_player_index = False
 
 
 allows_gamepad =[]
@@ -196,7 +203,7 @@ time.sleep(1)
 def push_index_integer(int_index, int_integer):
     # Convert integers to bytes (4 bytes each in little-endian order)
     byte_data = struct.pack("<ii", int_index, int_integer)
-    print("Sending to targets:", byte_data)
+    print(f"{int_index}| Sending to targets: {byte_data}")
     
     # Send the bytes to each target
     for t in target_ipv4_class:
@@ -258,6 +265,12 @@ for device_path in devices:
             print("-" * 40)
             print (f"\n\n\n")
             pad = GamepadValue(device.path, allow_info)
+            number_gamepad = len(gamepads)
+            if bool_use_random_player_index:
+                pad.set_found_index(random.randint(-2000000000, 0))
+            else:
+                pad.set_found_index(start_gamepad_index + number_gamepad)
+
             gamepads.append(pad)
             bool_found = True
             break
@@ -323,34 +336,34 @@ for device_path in device_path_not_ban_or_registered:
                         bool_changed=True
                         if gamepad.up_arrow_pressed:
                             print(f"Up arrow pressed ({gamepad.mapping.key_press_value_for_up_arrow_pressed})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_up_arrow_pressed)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_up_arrow_pressed)
                         else:
                             print(f"Up arrow released ({gamepad.mapping.key_press_value_for_up_arrow_pressed+1000})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_up_arrow_pressed+1000)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_up_arrow_pressed+1000)
                     if gamepad.down_arrow_pressed != gamepad.down_arrow_pressed_previous:
                         bool_changed=True
                         if gamepad.down_arrow_pressed:
                             print(f"Down arrow pressed ({gamepad.mapping.key_press_value_for_down_arrow_pressed})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_down_arrow_pressed)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_down_arrow_pressed)
                         else:
                             print(f"Down arrow released ({gamepad.mapping.key_press_value_for_down_arrow_pressed+1000})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_down_arrow_pressed+1000)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_down_arrow_pressed+1000)
                     if gamepad.right_arrow_pressed != gamepad.right_arrow_pressed_previous:
                         bool_changed=True
                         if gamepad.right_arrow_pressed:
                             print(f"Right arrow pressed ({gamepad.mapping.key_press_value_for_right_arrow_pressed})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_right_arrow_pressed)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_right_arrow_pressed)
                         else:
                             print(f"Right arrow released ({gamepad.mapping.key_press_value_for_right_arrow_pressed+1000})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_right_arrow_pressed+1000)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_right_arrow_pressed+1000)
                     if gamepad.left_arrow_pressed != gamepad.left_arrow_pressed_previous:
                         bool_changed=True
                         if gamepad.left_arrow_pressed:
                             print(f"Left arrow pressed ({gamepad.mapping.key_press_value_for_left_arrow_pressed})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_left_arrow_pressed)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_left_arrow_pressed)
                         else:
                             print(f"Left arrow released ({gamepad.mapping.key_press_value_for_left_arrow_pressed+1000})")
-                            push_index_integer(gamepad.random_id, gamepad.mapping.key_press_value_for_left_arrow_pressed+1000)
+                            push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_left_arrow_pressed+1000)
                     
                     gamepad.horizontal = new_horizontal
                     gamepad.vertical = new_vertical
@@ -395,11 +408,11 @@ for device_path in device_path_not_ban_or_registered:
 
                         print(f"Button {key_event.event.code} pressed ({button_name} - {button_key_to_push})")
                         # Handle button press
-                        push_index_integer(gamepad.random_id, button_key_to_push)
+                        push_index_integer(gamepad.player_index, button_key_to_push)
                     elif key_event.event.value == 0:  # Button released
                         print(f"Button {key_event.event.code} released ({button_name} - {button_key_to_push+1000})")
                         # Handle button release
-                        push_index_integer(gamepad.random_id, button_key_to_push + 1000)
+                        push_index_integer(gamepad.player_index, button_key_to_push + 1000)
                         
                     # if key_event.event.code == 314:
                     #     restart_program()
