@@ -12,33 +12,104 @@ import struct
 import asyncio
 
 
+use_prind_for_iid=True
+use_print=False
+use_print_button_changed = False
+use_print_axis_moved = False
+
+start_gamepad_index = 1
+bool_use_random_player_index = False
+
+
+def get_ipv4_from_mdns(mdns_name):
+    try:
+        # Resolve the mDNS name to an IP address
+        ip_address = socket.gethostbyname(mdns_name)
+        return ip_address
+    except socket.gaierror:
+        print(f"Could not resolve mDNS name: {mdns_name}")
+        return None
+
+raspberry_pi_mdns_name = "raspberrypi.local"
+raspberry_pi_ipv4 = get_ipv4_from_mdns(raspberry_pi_mdns_name)
+
+
+
+target_ipv4="""
+192.168.178.35:3615
+127.0.0.1:3615
+"""
+
+if raspberry_pi_ipv4:
+    target_ipv4 += f"{raspberry_pi_ipv4}:3615\n"
+
+
+print(f"""
+Use print for debugging is disabled.
+Print consume a lot of performance, so it is recommended to disable it for better performance.
+You can enable it by setting use_print to True in the code.
+
+The message are send to:
+{target_ipv4}          
+
+If you add controller your need to restart the code.
+OS and USB Hub are not the best at handling lot's of joypad.
+Take that in consideration.
+
+Starting index is at {start_gamepad_index}.
+{"Random player index is enabled." if bool_use_random_player_index else "Random player index is disabled."}
+
+This tool use the S2W NES convention:
+https://github.com/EloiStree/s2w
+
+And the IID convetion for transmitting the data:
+https://github.com/EloiStree/iid
+
+You can look at Godot Multi NES if you want to make a game yourself:
+https://github.com/EloiStree/2026_01_18_gdp_nes_udp_multiplayer
+
+          """)
+
+
 def restart_program():
-    print("Restarting the program...")
+    if use_print:
+        print("Restarting the program...")
     os.execv(sys.executable, ['python'] + sys.argv)
 
 
 
+def display_all_devices_name_ignore_print():
+    print("Available input devices:")
+    for path in list_devices():
+        dev = InputDevice(path)
+        print(f"Name: {dev.name} \t\t\t Path: {dev.path}")
+display_all_devices_name_ignore_print()
+
 
 def display_device_information():
-    print("Available input devices:")
+    if use_print:
+        print("Available input devices:")
     for path in list_devices():
         dev = InputDevice(path)
-        print(f"Path: {dev.path}")
-        print(f"Name: {dev.name}")
-        print(f"Phys: {dev.phys}")
-        print(f"Uniq: {dev.uniq}")
-        print(f"Capabilities: {dev.capabilities()}")
-        print("-" * 40)
-
+        if use_print:
+            print(f"Path: {dev.path}")
+            print(f"Name: {dev.name}")
+            print(f"Phys: {dev.phys}")
+            print(f"Uniq: {dev.uniq}")
+            print(f"Capabilities: {dev.capabilities()}")
+            print("-" * 40)
 
 def display_device_path_name():
-    print("Available input devices:")
+    if use_print:
+        print("Available input devices:")
     for path in list_devices():
         dev = InputDevice(path)
-        print(f"Path: |{dev.path}|{dev.name}")
-        # dispaly button id
+        if use_print:
+            print(f"Path: |{dev.path}|{dev.name}")
+            # dispaly button id
         
-        print("-" * 40)
+        if use_print:
+            print("-" * 40)
 
 
 def is_number_in_array(number, array):
@@ -47,7 +118,25 @@ def is_number_in_array(number, array):
             return True
     return False
 
+def display_all_devices_full_information():
+    if use_print:
+        print("Available input devices:")
+    for path in list_devices():
+        dev = InputDevice(path)
+        if use_print:
+            print(f"Path: {dev.path}")
+            print(f"Name: {dev.name}")
+            print(f"Phys: {dev.phys}")
+            print(f"Uniq: {dev.uniq}")
+            print(f"Capabilities: {dev.capabilities()}")
+            print("-" * 40)
+
+
+
+
 class Mapping_Keyword:
+    ## No logic, just information to create the gamepad reference and mapping depending of the hardware
+
     def __init__(self, device_name, range_horizontal=255, range_vertical=255, invert_horizontal=False, invert_vertical=False):
         self.device_name = device_name
         self.range_horizontal = range_horizontal
@@ -112,7 +201,7 @@ class Mapping_Keyword:
         self.gamepad_key_code_for_button_menu_left = menu_left
         self.gamepad_key_code_for_button_menu_right = menu_right
 
-    def set_integer_to_push_when_button_pressed(self, up,right,left,down, a, b, menu_left, menu_right):
+    def set_integer_to_push_when_button_pressed(self, up,right,down,left, a, b, menu_left, menu_right):
         self.key_press_value_for_up_arrow_pressed = up
         self.key_press_value_for_right_arrow_pressed = right
         self.key_press_value_for_down_arrow_pressed = down
@@ -123,22 +212,21 @@ class Mapping_Keyword:
         self.key_press_value_for_button_menu_right = menu_right
 
 class TargetIVP4:
+    ## Who are we targeting
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
     
 
+
 class GamepadValue:    
-
-
-   
+    ## Store the gamepad current state information with the device and mapping info.
 
     def __init__(self, path, mapping:Mapping_Keyword):
         self.path= path
         self.input_device = InputDevice(device_path)
         self.mapping = mapping
         self.player_index =random.randint(-2000000000, 0)
-
         self.up_arrow_pressed_previous = False
         self.up_arrow_pressed = False
         self.down_arrow_pressed_previous = False
@@ -147,63 +235,43 @@ class GamepadValue:
         self.right_arrow_pressed = False
         self.left_arrow_pressed_previous = False
         self.left_arrow_pressed = False
-
         self.horizontal = 0.0
         self.vertical = 0.0
-
 
     def set_found_index(self, index):
         self.player_index = index
 
         
 
-start_gamepad_index = 16
-bool_use_random_player_index = False
 
-
+# PRIVATE VARIABLES 
+# SOME STORAGE BUT NOT CONFIGURABLE
 allows_gamepad =[]
 gamepads =[]
-target_ipv4="""
-192.168.178.35:3615
-"""
-
-
-
 target_ipv4_class = []
-# turn text in target
+device_path_not_ban_or_registered = []
 
-line = target_ipv4.split("\n")
-for line in line:
-    if line:
-        ip, port = line.split(":")
-        target = TargetIVP4(ip, port)
-        print(target.ip, target.port)
-        target_ipv4_class.append(target)
+
+
+
+def add_target_ipv4():
+    global target_ipv4_class
+    line = target_ipv4.split("\n")
+    for line in line:
+        if line:
+            ip, port = line.split(":")
+            target = TargetIVP4(ip, port)
+            print(f"Adding target: {ip}:{port}")
+            target_ipv4_class.append(target)
         
+add_target_ipv4()
 
-
-print ("USB gamepad")
-
-
-print("Available input devices:")
-for path in list_devices():
-    dev = InputDevice(path)
-    print(f"Path: {dev.path}")
-    print(f"Name: {dev.name}")
-    print(f"Phys: {dev.phys}")
-    print(f"Uniq: {dev.uniq}")
-    print(f"Capabilities: {dev.capabilities()}")
-    print("-" * 40)
-
-
-print ("Go ...")
-
-time.sleep(1)    
 
 def push_index_integer(int_index, int_integer):
     # Convert integers to bytes (4 bytes each in little-endian order)
     byte_data = struct.pack("<ii", int_index, int_integer)
-    print(f"{int_index}| Sending to targets: {byte_data}")
+    if use_print:
+        print(f"{int_index}| Sending to targets: {byte_data}")
     
     # Send the bytes to each target
     for t in target_ipv4_class:
@@ -211,7 +279,10 @@ def push_index_integer(int_index, int_integer):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             # Send data to each target IP and port
             s.sendto(byte_data, (t.ip, int(t.port)))
-            print(f"Sent to {t.ip}:{t.port}:", byte_data)
+            #if use_print:
+            print(f"Sent to {t.ip}:{t.port}")
+    if use_prind_for_iid:
+        print(f"{int_index}|{int_integer} ")
 
 
 def get_gamepad(device_path):
@@ -219,14 +290,6 @@ def get_gamepad(device_path):
         if gamepad.path == device_path:
             return gamepad
     return None
-
-
-
-
-
-
-
-
 
 pad_usb_gamepad = Mapping_Keyword("USB gamepad", 255, 255, False, False)
 pad_usb_gamepad.set_native_button_to_listen([0], [0], [0], [0], [288,291,292], [289,290,293], [296], [297])
@@ -240,30 +303,32 @@ ban_keywords = ["keyboard", "mouse","Xbox","xbox","x-box","XBox","ps4","ps5","du
 allows_gamepad.append(pad_usb_gamepad)
 
 
-devices = list_devices()
+## display_all_devices_full_information()
 
-device_path_not_ban_or_registered = []
-print("Connected Input Devices:")
+devices = list_devices()
+if use_print:
+    print("Connected Input Devices:")
 for device_path in devices:
     device = InputDevice(device_path)
     device_name_low = device.name.lower()
   
-    for allow_info in ban_keywords:
-        if allow_info in device_name_low:
+    for ban_keyword in ban_keywords:
+        if ban_keyword.lower() in device_name_low:
             continue
     
     bool_found = False
     for allow_info in allows_gamepad:
         if allow_info.device_name.lower() in device_name_low:
-            
-            print (f"\n\n\nADD IN LIST: {allow_info.device_name}")
-            print(f"Device Path: {device.path}")
-            print(f"  Device Name: {device.name}")
-            print(f"  Device Type: {device.fd}")
-            print(f"  Device Event Type(s): {device.capabilities()}")
-            print (f"Range Horizontal: {allow_info.range_horizontal} Range Vertical: {allow_info.range_vertical}")
-            print("-" * 40)
-            print (f"\n\n\n")
+
+            if use_print:        
+                print (f"\n\n\n> ADD IN LIST: {allow_info.device_name}")
+                print(f"  Device Path: {device.path}")
+                print(f"  Device Name: {device.name}")
+                print(f"  Device Type: {device.fd}")
+                print(f"  Device Event Type(s): {device.capabilities()}")
+                print (f" Range Horizontal: {allow_info.range_horizontal} Range Vertical: {allow_info.range_vertical}")
+                print("-" * 40)
+                print (f"\n\n\n")
             pad = GamepadValue(device.path, allow_info)
             number_gamepad = len(gamepads)
             if bool_use_random_player_index:
@@ -273,36 +338,40 @@ for device_path in devices:
 
             gamepads.append(pad)
             bool_found = True
+            if use_print:
+                print (f"COUNT GAMEPAD: {len(gamepads)}")
             break
     if not bool_found:
-        print (f"NOT IN THE LIST")        
-        print(f"Device Path: {device.path}")
-        print(f"  Device Name: {device.name}")
-        print(f"  Device Type: {device.fd}")
-        print(f"  Device Event Type(s): {device.capabilities()}")
-        print("-" * 40)
+        if use_print:
+            print(f"\n\n\n> NOT IN THE LIST")        
+            print(f"  Device Path: {device.path}")
+            print(f"  Device Name: {device.name}")
+            print(f"  Device Type: {device.fd}")
+            print(f"  Device Event Type(s): {device.capabilities()}")
+            print("-" * 40)
+            print (f"\n\n\n")
         device_path_not_ban_or_registered.append(f"{device.path} - {device.name}")
         
 
 for device_path in device_path_not_ban_or_registered:
-    print(f"Device Path: {device_path}")
-
-
+    if use_print:
+        print(f"Device Path: {device_path}")
 
     async def listen_to_gamepad(gamepad):
         input_device_found = gamepad.input_device
-        print(f"Listening to {input_device_found.path}...")
-        print(f"Device name: {input_device_found.name}")
-        print(f"Device path: {input_device_found.path}")
+        if use_print:
+            print(f"Listening to {input_device_found.path}...")
+            print(f"Device name: {input_device_found.name}")
+            print(f"Player Index: {gamepad.player_index}")
+    
 
         try:
             async for event in input_device_found.async_read_loop():
                 if event.type == ecodes.EV_ABS:  # Axis movement (joystick movement)
                     abs_event = categorize(event)
-                    print(f"Axis {abs_event.event.code} moved to {abs_event.event.value} ({input_device_found.name})")
+                    if use_print and use_print_axis_moved:
+                        print(f"Axis {abs_event.event.code} moved to {abs_event.event.value} ({input_device_found.name})")
                     
-                    current_horizontal = gamepad.horizontal
-                    current_vertical = gamepad.vertical
                     new_horizontal = 0
                     new_vertical = 0
                     
@@ -335,41 +404,50 @@ for device_path in device_path_not_ban_or_registered:
                     if gamepad.up_arrow_pressed != gamepad.up_arrow_pressed_previous:
                         bool_changed=True
                         if gamepad.up_arrow_pressed:
-                            print(f"Up arrow pressed ({gamepad.mapping.key_press_value_for_up_arrow_pressed})")
+                            if use_print and use_print_button_changed:
+                                print(f"Up arrow pressed ({gamepad.mapping.key_press_value_for_up_arrow_pressed})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_up_arrow_pressed)
                         else:
-                            print(f"Up arrow released ({gamepad.mapping.key_press_value_for_up_arrow_pressed+1000})")
+                            if use_print and use_print_button_changed:
+                                print(f"Up arrow released ({gamepad.mapping.key_press_value_for_up_arrow_pressed+1000})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_up_arrow_pressed+1000)
                     if gamepad.down_arrow_pressed != gamepad.down_arrow_pressed_previous:
                         bool_changed=True
                         if gamepad.down_arrow_pressed:
-                            print(f"Down arrow pressed ({gamepad.mapping.key_press_value_for_down_arrow_pressed})")
+                            if use_print and use_print_button_changed:
+                                print(f"Down arrow pressed ({gamepad.mapping.key_press_value_for_down_arrow_pressed})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_down_arrow_pressed)
                         else:
-                            print(f"Down arrow released ({gamepad.mapping.key_press_value_for_down_arrow_pressed+1000})")
+                            if use_print and use_print_button_changed:
+                                print(f"Down arrow released ({gamepad.mapping.key_press_value_for_down_arrow_pressed+1000})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_down_arrow_pressed+1000)
                     if gamepad.right_arrow_pressed != gamepad.right_arrow_pressed_previous:
                         bool_changed=True
                         if gamepad.right_arrow_pressed:
-                            print(f"Right arrow pressed ({gamepad.mapping.key_press_value_for_right_arrow_pressed})")
+                            if use_print and use_print_button_changed:
+                                print(f"Right arrow pressed ({gamepad.mapping.key_press_value_for_right_arrow_pressed})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_right_arrow_pressed)
                         else:
-                            print(f"Right arrow released ({gamepad.mapping.key_press_value_for_right_arrow_pressed+1000})")
+                            if use_print and use_print_button_changed:
+                                print(f"Right arrow released ({gamepad.mapping.key_press_value_for_right_arrow_pressed+1000})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_right_arrow_pressed+1000)
                     if gamepad.left_arrow_pressed != gamepad.left_arrow_pressed_previous:
                         bool_changed=True
                         if gamepad.left_arrow_pressed:
-                            print(f"Left arrow pressed ({gamepad.mapping.key_press_value_for_left_arrow_pressed})")
+                            if use_print and use_print_button_changed:
+                                print(f"Left arrow pressed ({gamepad.mapping.key_press_value_for_left_arrow_pressed})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_left_arrow_pressed)
                         else:
-                            print(f"Left arrow released ({gamepad.mapping.key_press_value_for_left_arrow_pressed+1000})")
+                            if use_print and use_print_button_changed:
+                                print(f"Left arrow released ({gamepad.mapping.key_press_value_for_left_arrow_pressed+1000})")
                             push_index_integer(gamepad.player_index, gamepad.mapping.key_press_value_for_left_arrow_pressed+1000)
                     
                     gamepad.horizontal = new_horizontal
                     gamepad.vertical = new_vertical
                             
                     if bool_changed:
-                        print (f"Horizontal: {gamepad.horizontal} Vertical: {gamepad.vertical}")
+                        if use_print and use_print_axis_moved:
+                            print (f"Horizontal: {gamepad.horizontal} Vertical: {gamepad.vertical}")
 
                 elif event.type == ecodes.EV_KEY:  # Button press or release
                     key_event = categorize(event)
@@ -406,11 +484,13 @@ for device_path in device_path_not_ban_or_registered:
 
                     if key_event.event.value == 1:  # Button pressed
 
-                        print(f"Button {key_event.event.code} pressed ({button_name} - {button_key_to_push})")
+                        if use_print and use_print_button_changed:
+                            print(f"Button {key_event.event.code} pressed ({button_name} - {button_key_to_push})")
                         # Handle button press
                         push_index_integer(gamepad.player_index, button_key_to_push)
                     elif key_event.event.value == 0:  # Button released
-                        print(f"Button {key_event.event.code} released ({button_name} - {button_key_to_push+1000})")
+                        if use_print and use_print_button_changed:
+                            print(f"Button {key_event.event.code} released ({button_name} - {button_key_to_push+1000})")
                         # Handle button release
                         push_index_integer(gamepad.player_index, button_key_to_push + 1000)
                         
@@ -419,7 +499,8 @@ for device_path in device_path_not_ban_or_registered:
 
                 elif event.type == ecodes.EV_SW:  # Switch event (D-pad)
                     switch_event = categorize(event)
-                    print(f"Switch {switch_event.event.code} state: {switch_event.event.value}")
+                    if use_print:
+                        print(f"Switch {switch_event.event.code} changed to {switch_event.event.value} ({input_device_found.name})")
 
         except asyncio.CancelledError:
             print(f"\nExiting... for device {input_device_found.path}")
