@@ -79,11 +79,7 @@ gamepads =[]
         
         
 target_ipv4="""
-10.0.211.25:2504
-10.0.211.24:2504
-10.0.211.23:2504
-10.0.211.21:2504
-193.150.14.47:3615
+192.168.178.35:3615
 """
 
 
@@ -159,7 +155,7 @@ for device_path in devices:
             print (f"\n\n\nADD IN LIST: {allow_info.keyword}")
             print(f"Device Path: {device.path}")
             print(f"  Device Name: {device.name}")
-            print(f"  Device Type: {device.fn}")
+            print(f"  Device Type: {device.fd}")
             print(f"  Device Event Type(s): {device.capabilities()}")
             print (f"Range Horizontal: {allow_info.range_horizontal} Range Vertical: {allow_info.range_vertical}")
             print("-" * 40)
@@ -171,7 +167,7 @@ for device_path in devices:
         print (f"NOT IN THE LIST")        
         print(f"Device Path: {device.path}")
         print(f"  Device Name: {device.name}")
-        print(f"  Device Type: {device.fn}")
+        print(f"  Device Type: {device.fd}")
         print(f"  Device Event Type(s): {device.capabilities()}")
         print("-" * 40)
         device_path_not_ban_or_registered.append(f"{device.path} - {device.name}")
