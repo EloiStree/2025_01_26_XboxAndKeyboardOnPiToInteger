@@ -8,6 +8,9 @@ On a Raspberry Pi, Xbox controllers are recognized as generic HID (Human Interfa
 
 I hope this helps!
 
+https;//eloistree.github.io/r/discord
+
+==========================
 
 
 # Steam Deck OS
