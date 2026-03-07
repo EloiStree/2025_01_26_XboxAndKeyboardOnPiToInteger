@@ -10,6 +10,10 @@ I hope this helps!
 
 https://eloistree.github.io/r/discord
 
+See to use in with your game:
+- Unity: https://github.com/EloiStree/2026_01_18_upm_nes_udp_multiplayer
+- Godot: https://github.com/EloiStree/2026_01_18_gdp_nes_udp_multiplayer
+
 ==========================
 
 
